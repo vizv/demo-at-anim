@@ -67,7 +67,18 @@ def parse_symbol_frame(frame, symbol, build):
     seq_idx = frame.frame_num
     duration = frame.duration
     build_image_idx = 0
-    bounds = (frame.x, frame.y, frame.w, frame.h)
+    # In Klei v6 build format, (frame.x, frame.y, frame.w, frame.h) is the logical
+    # trim box, but the actual texture region in the atlas extends ~30 game units
+    # beyond the trim box on each side (30-unit bleed margin). The vertex XY positions
+    # correctly capture the full game-unit extent of the sprite including this margin.
+    vertices = build.vertices[frame.vb_start_index:frame.vb_start_index + frame.num_verts]
+    xs = [v.x for v in vertices]
+    ys = [v.y for v in vertices]
+    cx = (min(xs) + max(xs)) / 2
+    cy = (min(ys) + max(ys)) / 2
+    w = max(xs) - min(xs)
+    h = max(ys) - min(ys)
+    bounds = (cx, cy, w, h)
     uvbox = compute_uvbox(frame.vb_start_index, frame.num_verts, build)
     return SymbolFrame(
         seq_idx=seq_idx,
